@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>AI Agent</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        #chatBox {
+            border: 1px solid black;
+            padding: 10px;
+            width: 80%;
+            height: 450px;
+            overflow-y: auto;
+            /* Vertical auto scroll */
+            overflow-x: hidden;
+            word-break: break-word;
+            /* Ensures long words break and wrap */
+            white-space: normal;
+            /* Ensures normal wrapping of text */
+            background-color: lightgrey;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            text-align: left;
+        }
+    </style>
+    <script>
+        async function sendMessage() {
+            let userInput = document.getElementById("userInput").value;
+            document.getElementById("userInput").value = "";
+            let chatBox = document.getElementById("chatBox");
+
+            chatBox.innerHTML += "<p><b>You:</b> " + userInput + "</p>";
+
+            let response = await fetch("http://{{ app_host }}:8080/chat/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ "text": userInput })
+            });
+
+            let data = await response.json();
+            console.log(data);
+            text = data.text;
+
+            chatBox.innerHTML += marked.parse("<p><b>Agent:</b> " + text + "</p>");
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+        }          
+    </script>
+</head>
+
+<body>
+    <div align="center">
+        <h2></h2>
+        <pre>
+            <div id="chatBox" ></div>
+        </pre>
+        <br>
+        <input type="text" id="userInput" placeholder="Type a message..."
+            style="border:1px solid black; padding:10px; width:80%;  overflow:auto;  ">
+
+        <script>
+            document.getElementById("userInput").addEventListener("keypress", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault(); // Prevent default behavior
+                    sendMessage()
+                }
+            });
+        </script>
+    </div>
+</body>
+
+</html>
