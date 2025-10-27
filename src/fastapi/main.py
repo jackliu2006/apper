@@ -4,7 +4,7 @@ from fastapi import FastAPI
 import os
 from dotenv import load_dotenv
 # Load .env file
-load_dotenv("/Users/jackliu2006/workspace/apper/src/fastapi/.env")
+load_dotenv("./.env")
 
 from v1.routes import router as v1_router
 
