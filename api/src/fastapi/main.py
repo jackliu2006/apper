@@ -8,7 +8,7 @@ load_dotenv("./.env")
 
 from v1.routes import router as v1_router
 
-app = FastAPI()
+app = FastAPI(version="1.0.0", title="Apper API")
 
 app.include_router(v1_router)
 
