@@ -1,5 +1,4 @@
 from fastapi import APIRouter, status, HTTPException
-from .application import Application, create_application, get_all_applications
 from .customer import Customer, create_customer, get_all_customers, get_customer_by_id
 from .address import Address, create_address, get_all_addresses, get_address_by_id, get_addresses_by_customer
 from .contract import Contract, create_contract, get_all_contracts, get_contract_by_id, get_contracts_by_customer
@@ -8,14 +7,6 @@ from .database import Base, Engine
 router = APIRouter(prefix="/v1")
 Base.metadata.create_all(bind=Engine)
 
-
-# @router.get("/applications", operation_id="getApplications", tags=["applications"])
-# async def getAllApplications():
-#     return get_all_applications()
-
-# @router.post("/applications", operation_id="createApplication", tags=["applications"], status_code=status.HTTP_201_CREATED)
-# async def createApplication(app: Application):
-#     return create_application(app)
 
 @router.get("/customers", operation_id="getCustomers", tags=["customers"])
 async def get_customers():
