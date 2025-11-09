@@ -18,7 +18,7 @@ from typing import List, Optional
 import uvicorn
 
 app = FastAPI(
-    title="Example Chat Backend",
+    title="Smart Agent Chat Backend",
     description="Simple example backend for agent-chat-ui",
     version="1.0.0"
 )
@@ -121,9 +121,4 @@ if __name__ == "__main__":
     print("Server will be available at: http://localhost:8000")
     print("API documentation at: http://localhost:8000/docs")
     
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        log_level="info"
-    )
+
