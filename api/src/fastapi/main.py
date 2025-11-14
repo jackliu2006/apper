@@ -16,7 +16,7 @@ app.include_router(v1_router)
 mcp = FastMCP.from_fastapi(app=app, name="apper API MCP")
 
 # 2. Create the MCP's ASGI app
-mcp_app = mcp.http_app(path='/mcp')
+mcp_app = mcp.http_app(path='/v1/mcp')
 
 # 3. Create a new FastAPI app that combines both sets of routes
 app = FastAPI(
