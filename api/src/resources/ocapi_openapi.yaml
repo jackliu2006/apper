@@ -1,0 +1,1423 @@
+openapi: 3.0.2
+info:
+  description: This is a calculation interface from Mercedes-Benz Mobility AG.
+  version: 3.17.0
+  title: OCAPI
+  termsOfService: https://git.i.mercedes-benz.com/mbm-apis/OneCalculationAPI
+  contact:
+    email: ocapi@mercedes-benz.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+externalDocs:
+  description: One Calculation Integrationguide
+  url: https://git.i.mercedes-benz.com/mbm-apis/OneCalculationAPI
+tags:
+  - name: calculations
+    description: Perform a calculation and get everything needed to render the input fields
+      as well as the result.
+  - name: health
+    description: Checks if the calculation-service is available
+servers:
+  - url: >-
+      https://{environment}.api.mercedes-benz.com/v3
+    variables:
+      environment:
+        default: ocapi  # Production server
+        enum:
+          - ocapi       # Production server
+          - dev.ocapi   # Development server
+          - test.ocapi  # Testing server
+paths:
+  /{market}/calculations:
+    post:
+      tags:
+        - calculations
+      summary: Calculate a new financing quote.
+      description: Calculate a new financing quote and return all that is needed to render
+        the input fields as well as the result.
+      operationId: calculations
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: market
+          description: Enabled markets - ISO 3166-1 alpha-2 country code of a market
+          required: true
+          schema:
+            type: string
+            default: de
+            enum:         # Enabled markets - ISO 3166-1 alpha-2 country code of a market
+              - at
+              - au
+              - be
+              - ch
+              - cz
+              - de
+              - dk
+              - es
+              - fr
+              - gb
+              - hu
+              - in
+              - it
+              - jp
+              - kr
+              - lu
+              - mx
+              - my
+              - nl
+              - nz
+              - pl
+              - pt
+              - ro
+              - se
+              - sg
+              - sk
+              - th
+              - tr
+              - tw
+              - za
+        - in: header
+          name: Accept-Language
+          description: 2 letter code ISO 639-1 for language followed by a hyphen and ISO 3166-1 ALPHA-2 of the country
+          example: de-DE
+          schema:
+            type: string
+          required: false
+        - in: header
+          name: User-Agent
+          description: currently not used in V3, default values can be used
+          example: Salestablet/v1.2
+          schema:
+            type: string
+          required: false
+        - in: header
+          name: X-OCAPI-User-Interaction
+          description: The rendering UI can send information on whether the customer has seen or changed the calculation. Used for measuring marketing acceptance.
+          example: calculator-viewed or output-viewed or short-summary-viewed or calculation-changed
+          schema:
+            type: string
+          required: false
+        - in: header
+          name: X-Request-ID
+          description: Unique identifier of the request. Makes it easier to trace behavior and trouble shooting.
+          example: 77e1c83b-7bb0-437b-bc50-a7a58e5660ac
+          schema:
+            type: string
+            format: uuid
+          required: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalculationModel"
+            examples:
+              de:
+                $ref: '#/components/examples/de'
+              pt:
+                $ref: '#/components/examples/pt'
+        description: Calculation context that needs to be used.
+        required: true
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalcResponse"
+        "400":
+          description: invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                "40010":
+                  $ref: '#/components/examples/40010'
+                "40030":
+                  $ref: '#/components/examples/40030'
+                "40031":
+                  $ref: '#/components/examples/40031'
+                "40040":
+                  $ref: '#/components/examples/40040'
+                "40050":
+                  $ref: '#/components/examples/40050'
+                "40060":
+                  $ref: '#/components/examples/40060'
+                "40061":
+                  $ref: '#/components/examples/40061'
+                "40062":
+                  $ref: '#/components/examples/40062'
+                "40063":
+                  $ref: '#/components/examples/40063'
+                "40070":
+                  $ref: '#/components/examples/40070'
+                "40071":
+                  $ref: '#/components/examples/40071'
+                "40072":
+                  $ref: '#/components/examples/40072'
+        "403":
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                "40310":
+                  $ref: '#/components/examples/40310'
+        "500":
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                "50060":
+                  $ref: '#/components/examples/50060'
+                "50070":
+                  $ref: '#/components/examples/50070' 
+                "50080":
+                  $ref: '#/components/examples/50080'
+  /health:
+    get:
+      tags:
+        - health
+      summary: Checks if the calculation-service is available
+      description: Can be used to monitor whether the service is available. However must not be called before each calculation request.
+      operationId: health
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API-Key is required for consumers only (not for providers)
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Status of the health call
+          example: up
+        downstream:
+          type: array
+          description: list of health-status of all configured market-proxies in the OCAPI gateway. Market-name is included in proxy-name.
+          items:
+            $ref: "#/components/schemas/HealthDownstream"
+    HealthDownstream:
+      type: object
+      properties:
+        proxy:
+          type: string
+          description: name of the market-proxy in the OCAPI gateway. ISO-code of the market and environment (dev, tst or prd) are included.
+          example: ocapi-v3-at-prd
+        statusCode:
+          type: integer
+          description: "HTTP Statuscode of the market-proxy. 200: service is up and running."
+          example: 200
+        details:
+          type: string
+          description: details in case of status <> 200, for example ECONNREFUSED
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorResponseBody"
+    ErrorResponseBody:
+      type: object
+      required:
+        - status
+        - code
+        - message
+      properties:
+        status:
+          type: integer
+          description: HTTP Statuscode
+          example: 400
+        code:
+          type: integer
+          description: Internal error code for ambiguous status codes
+          example: 40010
+        message:
+          type: string
+          description: Human readable error
+          example: 'ID not found'
+        doc_url:
+          type: string
+          description: Documentation reference
+          example: 'https://example.org'
+    CalculationModel:
+      type: object
+      description: "CalculationModel"
+      required:
+        - vehicle
+        - input
+      properties:
+        vehicle:
+          $ref: "#/components/schemas/Vehicle"
+        customer:
+          $ref: "#/components/schemas/Customer"
+        input:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinancialParameters"
+        opaque:
+          type: string
+          description: empty string on initial request, otherwise must be the value of the opaque value returned in the last reponse
+    Customer:
+      type: object
+      properties:
+        type:
+          type: string
+          description: type of the customer
+          enum:
+            - private
+            - business
+        segmentId:
+          type: string
+          description: customer segment ID
+        fleetAccountNumber:
+          type: string
+          description: number to group customer in a customer segment campaign or helps to identify a specific campaign for a customer
+        productType:
+          type: string
+          description: productType to be displayed as a default (ranked first)
+          enum:
+            - leasing
+            - financing
+        subProductType:
+          type: string
+          description: subProductType to be displayed as a default (ranked first)
+          enum:
+            - financing_standard
+            - financing_balloon
+            - financing_option
+            - leasing_operating
+            - leasing_operating_options
+            - leasing_finance
+            - leasing_finance_options
+            - leasing_finance_balloon
+        regionCode:
+          type: string
+          description: region code of the customer, e.g. zip code
+        financialAttributes:
+          type: array
+          description: desired financial attributes that can be taken into account in the calculation
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                enum:
+                  - downpayment
+                  - targetMonthlyInstallment
+                  - contractDuration
+                  - annualMileage
+                  - initialPaymentMultiple
+              currency:
+                type: string
+                description: currency of the financial attribute ( deprecated, use unit instead )
+                example: EUR
+              unit:
+                type: string
+                description: unit of that specific item ( i.e. km, mi or miles, month or any valid currency )   
+                example: month
+              rawValue:
+                type: number
+                description: raw value of the financial attribute
+                example: 10000.00
+        tradeIn:
+          $ref: "#/components/schemas/TradeIn"
+    TradeIn:
+      type: object
+      properties:
+        tradeInAmount:
+          type: object
+          description: total trade-in amount
+          properties:
+            currency:
+              type: string
+              description: ISO 3-letter code for currency
+              example: "EUR"
+            rawValue:
+              type: number
+              example: 10000.00
+            charges:
+              type: array
+              items:
+                $ref: "#/components/schemas/TradeInChargeInfo"
+        vehicleValue:
+          type: object
+          description: value of the trade-in vehicle
+          properties:
+            currency:
+              type: string
+              description: ISO 3-letter code for currency
+              example: "EUR"
+            rawValue:
+              type: number
+              example: 15000.00
+        remainingFinancedAmount:
+          type: object
+          description: the remaining dept of the trade-in vehicle
+          properties:
+            currency:
+              type: string
+              description: ISO 3-letter code for currency
+              example: "EUR"
+            rawValue:
+              type: number
+              example: 5000.00 
+    Vehicle:
+      type: object
+      description: "Vehicle"
+      properties:
+        technicalIdReference:
+          type: string
+          description: some reference to an (existing i.e. already built) vehicle; depending on sales region and market this might be VDS CommissionNo, VX VehicleId or VerSO-ConfigID.
+        vdzDeal:
+          type: boolean
+          description: transaction is a Model D VdZ transaction (true) or non-VdZ transaction (false)
+        vdzType:
+          type: string
+          description: flag used to identify different steps during migration ( temporary field, to be removed after migration )
+          enum:
+            - nonVdZ
+            - SGL
+            - VdZBlueprint
+        dealId:
+          type: string
+          description: some reference to the conditions of prices and subsidies, e.g. UID of Pricing Engine
+        fin:
+          type: string
+          description: vehicle FIN or VIN, limited use within EU member states, see OCAPI guide for more details
+        alternativeConfiguration:
+          type: array
+          description: possible equipments to be chosen in configurator to calculate partial instalments (instalments on equipment level)
+          items:
+            $ref: "#/components/schemas/Equipment"
+        vehicleConfiguration:
+          $ref: "#/components/schemas/VehicleConfiguration"
+        condition:
+          $ref: "#/components/schemas/Condition"
+        technicalData:
+          type: array
+          items:
+            $ref: "#/components/schemas/TechnicalData"
+        name:
+          type: string
+          description: name of the model
+          example: C 160 Limousine
+        vatReclaimable:
+          type: boolean
+          description: flag that indicates whether VAT can be claimed ( true ) or not. Applicable for used cars.
+        prices:
+          $ref: "#/components/schemas/PriceInfoContainer"
+        additionalValues:
+          $ref: "#/components/schemas/AdditionalValuesContainer"
+        financialCode:
+          type: string
+          description: code (if available) for the current configuration
+        usage:
+          type: string
+          description: indicates the usage type of the vehicle (taxi, driving instructor vehicle,...)
+          example: taxi
+        warranty:
+          type: string
+          description: type of warranty, e.g. CPO
+          enum:
+            - CPO
+        quantity:
+          type: number
+          description: number of same vehicles the calculation is requested for
+        additionalVehicleAttributes:
+          type: array
+          description: all kind of additional attributes to the vehicle
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                enum:
+                  - drehscheibe  #special vehicle pool in market de
+                  - jungeSterne
+                  - preGrounding
+                  - postGrounding
+        BAFA:
+          type: object
+          description: Properties for BAFA document to receive environmental bonus in Germany
+          properties:
+            specialEquipmentsNet:
+              type: number
+              description: total sum of all equipments
+            onTheRoadPriceNet:
+              type: number
+              description: acquisition costs
+            extraCostsNet:
+              type: number
+              description: total amount of the extended scope of delivery
+            deliveryChargeNet:
+              type: number
+              description: transfer costs
+        vehicleOrderDate:
+          type: string
+          description: date of vehicle order in ISO-8601 format w/o time portion, i.e. YYYY-MM-DD
+          example: 2024-07-23
+        taxCase:
+          type: string
+          enum:
+            - standard
+            - nato
+            - gClassInGraz
+            - depot
+          description: tax cases which apply for the whole deal/vehicle (relevant for accounting)
+          example: "nato"
+        proposalType:
+          type: string
+          description: type of proposal. Indicates whether the request is an initial proposal ("initial"), a proposal change ("change") or a follow-up financing ("followUp").
+          default: "initial"
+          enum:
+            - initial
+            - change
+            - followUp
+        initialProposalDate:
+          type: string
+          description: date of initial proposal in ISO-8601 format w/o time portion, i.e. YYYY-MM-DD. The date shows the day on which the customer creates the initial proposal, since the date determines the residual value which will be used during calculations of future contract changes.
+          example: "2024-09-27"
+        proposalVersion:
+          type: number
+          description: Common identifier for calculation/order version. Needed to handle order amendment in stationary sales, created by vehicle POS system
+          example: 1
+    TechnicalData:
+      type: object
+      properties:
+        id:
+          type: string
+          description: id of the technical data field
+          example: fuelType
+        value:
+          type: string
+          description: value of the techical data field
+          example: petrol
+    Condition:
+      type: object
+      properties:
+        firstRegistrationDate:
+          type: string
+          description: date of first registration in ISO-8601 format w/o time portion, i.e. YYYY-MM-DD (preferred) or as MM/YYYY (deprecated)
+        mileage:
+          $ref: "#/components/schemas/Mileage"
+        condition:
+          type: string
+          description: indicates condition of the vehicle 
+          enum:
+            - new
+            - used
+            - demonstrator
+        isBts:
+          type: boolean
+          description: identification of build to stock vehicles (true), important for prioritization of the credit decision
+    Mileage:
+      type: object
+      properties:
+        kind: #deprecated: do not use anymore
+          type: string
+          description: kind of mileage indication (per year, per month, ...)
+        rawValue:
+          type: number
+          description: current mileage of the vehicle
+        value:
+          type: string
+          description: current mileage of the vehicle formatted for frontend UI
+        unitFormatted:
+          type: string
+          description: formatted unit for frontend UI
+          example: km
+        unit: #deprecated: source of unit not defined, use unitFormatted instead
+          type: string
+          description: value of the unit. E.g. gives KMT - kilometers
+          example: KMT
+        format:
+          type: string
+          description: format used to build value for display
+          example: "##,### miles"
+    VehicleConfiguration:
+      type: object
+      description: "VehicleConfiguration"
+      properties:
+        division:
+          type: string
+          description: division of the vehicle
+          enum:
+            - pc
+            - cv
+            - van
+        brand:
+          type: string
+          description: brand name of the vehicle
+          enum:
+            - mercedes-benz
+            - mercedes-amg
+            - smart
+            - other
+        baumuster:
+          type: string
+          description: baumuster number
+          example: "160"
+        nst:
+          type: string
+          description: national sales type for current market, for Vans also national sales reference (NSR) or Neue Erzeugnis Dokumentation (NED) are allowed instead
+        modelYear:
+          type: string
+          description: SA-Code for current model year
+        changeYear:
+          type: string
+          description: SA-Code for current change year
+        vanTypeCode:
+          type: string
+          description: additional attribute for identification of van type (needed after harmonization of vehicle identification between cars and vans used by CCS)
+        facelift:
+          type: boolean
+          description: vehicle is facelifted (true) or is not facelifted (false)
+        onlineSalesFlag:
+          type: string
+          description: flag to indicate if request is done by online sales ("true") or in stationary context ("false")
+        retailerId:
+          type: string
+          description: Id of the retailer who offers the car
+        salesClass:
+          type: string
+          description: sales class of the model
+          example: E-Class
+        salesDescription:
+          type: string
+          description: description text for the vehicle
+        equipments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Equipment"
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/Option'
+    Option:
+      type: object
+      description: "Option"
+      properties:
+        type:
+          type: string
+          enum:
+            - dealer
+            - factory
+            - additional
+            - systempartner
+            - bodybuilder
+            - custom-tailored-trucks
+        vendor:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: number
+        prices:
+          $ref: '#/components/schemas/PriceInfoContainer'
+    Equipment:
+      type: object
+      description: "Equipment"
+      properties:
+        code:
+          type: string
+        codeType:
+          type: string
+        name:
+          type: string
+        prices:
+            $ref: "#/components/schemas/EquipmentPriceInfoContainer"
+    EquipmentInstalment:
+      type: object
+      description: "EquipmentInstalment"
+      properties:
+        code:
+          type: string
+        codeType:
+          type: string
+        name:
+          type: string
+        value:
+          type: string
+        rawValue:
+          type: number
+    ChargeInfo:
+      type: object
+      properties:
+        label:
+          type: string
+          description: name of charge in national language
+        rawRate:
+          type: number
+          description: rate of charge
+        rawAmount:
+          type: number
+          description: amount of charge
+        exemptionAmount:
+          type: number
+          description: amount of exemption applicable for specific item, mostly for tax amounts
+        type:
+          type: string
+          description: type of charge, included in the price. 'vat' must not provided for net prices
+          enum:
+            - acquisitionTax
+            - automobileTax
+            - bpm
+            - carAssessmentFee
+            - co2Tax
+            - compulsoryInsurance
+            - costExpenses
+            - delivery
+            - deliveryFee
+            - ecv
+            - exciseTax
+            - frf
+            - garageFee
+            - garageHandlingFee
+            - inspectionFee
+            - inspectionHandlingFee
+            - ipt
+            - isv
+            - licensePlateFee
+            - maintenancePackageFee
+            - notarialFee
+            - nova
+            - otherNonTaxableFee
+            - ownershipClaimFee
+            - preparationFee
+            - recycleDeposit
+            - recyclingFee
+            - registrationTax
+            - roadTax
+            - stampDutyFee
+            - vat
+            - ved
+            - vrp
+            - warrantFee
+            - weightTax
+    TradeInChargeInfo:
+      type: object
+      properties:
+        label:
+          type: string
+          description: name of charge in national language
+        rawRate:
+          type: number
+          description: rate of charge
+        rawAmount:
+          type: number
+          description: amount of charge
+        type:
+          type: string
+          description: type of charge
+          enum:
+            - tradeInHandlingFee
+            - tradeInFee
+            - vat
+    AmountInfo:
+      type: object
+      properties:
+        label:
+          type: string
+          description: name of value in national language
+        subsidyUid:
+          type: string
+          description: unique identifier (up to 8 digits and alphanumeric) for each subsidy-AmountInfo-element, will be delivered by P.en
+          example: "f486fa"
+        campaignId:
+          type: string
+          description: ID of the financial campaign
+          example: "P206"
+        campaignCategory:
+          type: string
+          description: category of campaign, used for noncashCampaign 
+          enum:
+            - IS
+            - FC
+            - MA
+            - GA
+            - SP
+        rawRate:
+          type: number
+          description: rate of amount (positive percentage value, e.g. 7.00)
+        rawAmount:
+          type: number
+          description: absolute amount (positive currency value)
+        targetRate:
+          type: number
+          description: target Rate
+        type:
+          type: string
+          description: type of amount
+          enum:
+            - environmentalBonusGovernment
+            - environmentalBonusManufacturer
+            - financeInterest
+            - noncashCampaign
+            - subsidyFinancing
+            - subsidyLeasing
+            - subsidyLeasingManufacturer
+            - subsidyService
+            - subsidyServiceLeasing
+            - vehicleVolumeDiscount
+            - vehicleVolumeDiscountLeasing
+            - vehicleVolumeDiscountFinancing
+            - vehicleAddtionalDiscount  #deprecated: use vehicleAdditionalDiscount instead
+            - vehicleAdditionalDiscount
+            - vehicleAdditionalDiscountLeasing
+            - vehicleAdditionalDiscountFinancing
+            - vehicleCashDiscount
+            - vehicleTotalEquipmentDiscountLeasing
+            - vehicleTotalEquipmentDiscountFinancing
+            - transportCost
+            - transferCost
+    PriceInfo:
+      type: object
+      description: "PriceInfo"
+      required:
+        - id
+        - charges
+        - currency
+        - rawValue
+      properties:
+        id:
+          type: string
+          description: id of the price info. It is mandatory to provide gross prices, but net prices (see enum net...) can be provided additionally. Whether net prices are needed must be aligned with the market.
+          enum:
+            - baseListPrice
+            - grossListPrice
+            - initialGrossListPrice
+            - purchasePrice
+            - purchasePriceLeasing
+            - purchasePriceFinancing
+            - discountableBasePrice
+            - netBaseListPrice
+            - netGrossListPrice
+            - netPurchasePrice
+            - netPurchasePriceLeasing
+            - netPurchasePriceFinancing
+            - netDiscountableBasePrice
+            - transactionPricePrivateLeasing  #deprecated: use purchasePriceLeasing instead
+            - transactionPricePrivateFinancing  #deprecated: use purchasePriceFinancing instead
+            - transactionPriceBusinessLeasing  #deprecated: use purchasePriceLeasing instead
+            - transactionPriceBusinessFinancing  #deprecated: use purchasePriceFinancing instead
+        currency:
+          type: string
+          description: currency of the price info
+          example: EUR
+        rawValue:
+          type: number
+          description: raw value of the price info
+          example: 54500.96
+        charges:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChargeInfo"
+    EquipmentPriceInfo:
+      type: object
+      description: "EquipmentPriceInfo"
+      required:
+        - id
+        - charges
+        - currency
+        - rawValue
+      properties:
+        id:
+          type: string
+          description: id of this price.
+          enum:
+            - netPrice
+            - grossPrice
+        currency:
+          type: string
+          description: currency of the price info
+          example: EUR
+        rawValue:
+          type: number
+          description: raw value of the price info
+          example: 54500.96
+        charges:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChargeInfo"
+    FinancialParameters:
+      type: object
+      required:
+        - id
+        - value
+      properties:
+        id:
+          type: string
+          example: term
+        value:
+          type: string
+          example: "12"
+    CalcResponse:
+      type: object
+      description: "CalcResponse"
+      properties:
+        output:
+          $ref: "#/components/schemas/Output"
+        input:
+          $ref: "#/components/schemas/InputContainer"
+        tables:
+          $ref: "#/components/schemas/TableContainer"
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        message:
+          type: string
+        opaque:
+          type: string
+          description: if this is returned in a response, the subsequent request has to add this property
+    Output:
+      type: object
+      description: "Output"
+      properties:
+        financialCode:
+          type: string
+          example: 8dd7vv7773fhhuhf8s8023me
+        currency:
+          type: string
+          example: EUR
+        widgetTitle:
+          type: string
+          example: Mercedes-Benz Bank | Ratenrechner
+        rate:
+          type: string
+          example: 94,59 €
+        rateData:
+          type: number
+          example: 94.59
+        messages:
+          type: array
+          items:
+            type: string
+            example: Für dieses Fahrzeug stehen aktuell keine Finanzinformationen zur Verfügung.
+        financingProduct:
+          type: object
+          properties:
+            id:
+              type: string
+              example: "1"
+            label:
+              type: string
+              example: Finanzierung
+            externalPosId:
+              type: string
+            customerType:
+              type: string
+              enum:
+                - private
+                - business
+            productType:
+              type: string
+              enum:
+                - leasing
+                - financing
+            subProductType:
+              type: string
+              enum:
+                - financing_standard
+                - financing_balloon
+                - financing_option
+                - leasing_operating
+                - leasing_operating_options
+                - leasing_finance
+                - leasing_finance_options
+                - leasing_finance_balloon
+            isCampaign:
+              type: boolean
+            campaignLabel:
+              type: string
+            campaignInfo:
+              type: string
+            campaignId:
+              type: string
+        containers:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutputContainer"
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/Link"
+        alternativeConfigurationInstalments:
+          type: array
+          description: contains calculated partial instalments for the alternative configuration given.
+          items:
+            $ref: "#/components/schemas/EquipmentInstalment"
+    Link:
+      type: object
+      description: "Link"
+      properties:
+        label:
+          type: string
+        url:
+          type: string
+        id:
+          type: string
+          description: id of the link. Possible values are 'car_configurator', 'test_drive', 'showroom_stock', 'dealer_locator', 'close'. For details see additional information in integration or provider guide
+          example: close
+        classification:
+          description: describes the type of link. Possible values are 'default', 'callToAction' and 'list'
+          type: string
+          example: default
+    InputField:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - oneOfMany
+            - number
+            - outputText
+            - boolean
+            - text
+        subtype:
+          type: string
+          description: describes what kind the given type is. E.g. a type number could be either class percent or currency
+          example: percent
+        businessContext:
+          type: string
+          description: gives an indication of the business context of a oneOfMany-field, e.g. to enable differentiation for the UI 
+          enum:
+            - fundingProduct
+            - customerType
+        label:
+          type: string
+          example: Laufzeit in Monaten
+        id:
+          type: string
+          example: term
+          description: internal id of this financial input attribute
+        values:
+          type: array
+          description: possible values fot this financial input attribute
+          items:
+            $ref: "#/components/schemas/SingleValue"
+        value:
+          $ref: "#/components/schemas/SingleValue"
+        minValue:
+          $ref: "#/components/schemas/SingleValue"
+        maxValue:
+          $ref: "#/components/schemas/SingleValue"
+        step:
+          type: number
+          description: can be used to implement sliders, represents the step size. Example gives 12, e.g. when delivering information about duration
+          example: 12
+        unitFormatted:
+          type: string
+          example: "%"
+          description: pre-formatted unit of the value as to be displayed in a frontend application
+        highlight:
+          type: boolean
+          example: true
+          description: indicates if the financial attribute should be highlighted in some way
+        message:
+          type: string
+          example: Die Laufzeit war zu hoch und wurde angepasst.
+          description: message to display concerning this input field
+        info:
+          type: string
+          example: Die Laufzeit bestimmt die Länge Ihres Vertrages.
+          description: information to display concerning this input field
+        editable:
+          type: boolean
+          description: this flag indicates whether the value might be changed/selected (true) or not ( false, i.e. enforcing DISABLED flag for HTML elements )
+          example: false
+    FinancingResultRow:
+      type: object
+      description: "FinancingResultRow"
+      properties:
+        id:
+          type: string
+          example: term
+          description: internal id of this financial attribute.
+        disclaimer:
+          type: string
+        highlight:
+          type: boolean
+          description: indicates if the financial attribute should be highlighted in some way
+          example: true
+        infoTextKey:
+          type: string
+          description: info text key for this financial attribute
+        label:
+          type: string
+          description: label of the financial attribute
+          example: Effektiver Jahreszins
+        value:
+          type: string
+          example: 4,99 %
+          description: pre-formatted value as to be displayed in a frontend application
+        subtype:
+          type: string
+          description: provides information about the kind of value which has been pre-formatted
+          example: percent
+        businessValue:
+          type: string
+          description: unformatted value
+          example: "4.99"
+        unitFormatted:
+          type: string
+          example: "%"
+          description: pre-formatted unit of the value as to be displayed in a frontend application
+        unit:
+          type: string
+          example: percent
+          description: unit of the value for automatic processing
+    PriceInfoContainer:
+      type: array
+      description: describes a list of prices including tax information in a generic way. The id of the PriceInfo gives business information about what type of price if available.
+      items:
+        $ref: "#/components/schemas/PriceInfo"
+    AdditionalValuesContainer:
+        type: "array"
+        description: "Additional amounts important for the calculation can be placed here. Examples are additional subsidies or other amounts that are set by the vehicle side."
+        items:
+          $ref: "#/components/schemas/AmountInfo"
+    EquipmentPriceInfoContainer:
+      type: array
+      description: describes a list of prices including tax information in a generic way. The id of the PriceInfo gives business information about what type of price if available.
+      items:
+        $ref: "#/components/schemas/EquipmentPriceInfo"
+    OutputContainer:
+      type: object
+      description: "OutputContainer"
+      properties:
+        id:
+          type: string
+          description: unique id of the container.
+          enum:
+            - output
+            - shortSummary
+            - regulatory
+            - fullSummary
+            - service
+        label:
+          type: string
+          description: label of the container (e.g. to be displayed in UI-frontend)
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinancingResultRow"
+        childContainers:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutputContainer"
+    InputContainer:
+      type: object
+      description: "InputContainer"
+      properties:
+        id:
+          type: string
+          description: unique id of the container.
+          enum:
+            - input
+            - service
+        label:
+          type: string
+          description: label of the container (e.g. to be displayed in UI-frontend)
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InputField"
+        childContainers:
+          type: array
+          items:
+            $ref: "#/components/schemas/InputContainer"
+    TableContainer:
+      type: array
+      description: contains all tables
+      items:
+        $ref: "#/components/schemas/table"
+    BusinessInfo:
+      type: object
+      properties:
+        value:
+          type: string
+          description: provides unformatted description of business infos
+          example: "Maximale Entscheidungsfreiheit mit niedrigen mtl. Raten"
+        highlight:
+          type: boolean
+          example: true
+          description: indicates if the attribute should be highlighted in some way
+    SingleValue:
+      type: object
+      properties:
+        label:
+          type: string
+          example: 12 Monate
+          description: provides a label to be used by the GUI for rendering the value of this SingleValue
+        label2:
+          type: string
+          example: 12 Monate
+          description: provides a 2nd label to be used by the GUI for rendering the value of this SingleValue
+        teaserText:
+          type: string
+          example: "Best choice"
+          description: will show up a badge with that text, if "businessContext" is set to "fundingProduct" and used within the "values" array only
+        value:
+          type: string
+          description: unformatted value to be used for further calculations
+          example: "12"
+        unitFormatted:
+          type: string
+          example: "%"
+          description: pre-formatted unit of the value as to be displayed in a frontend application
+        unit:
+          type: string
+          example: percent
+          description: unit of the value for evaluation
+        selected:
+          type: boolean
+          description: indicates if this value is selected
+          example: true
+        format:
+          type: string
+          description: indicates how this value is formated. The actual formated value uses the locale provided in the request
+          example: "###,###.## EUR"
+        info:
+          type: string
+          description: information to display concerning this SingleValue
+        businessInfos:
+          type: array
+          description: list of BusinessInfo that provides additional explanations e.g. for funding products. Frontend has additional freedom how to render the list. This complements the already existing "SingleValue.info" property that cannot provide a list but only a single text.
+          items:
+            $ref: "#/components/schemas/BusinessInfo"
+    table:
+      type: object
+      description: this is a table object representing one single table
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+          description: caption for table - always visible (used as placeholder with a twisty for expand/collapse)
+        type:
+          type: string
+          description: specify type of table, i.e. "amortizationTable"
+          enum:
+            - amortizationTable 
+        disclaimer:
+          type: string
+          description: legal disclaimer text
+        options:
+          type: object
+          properties:
+            tableTitle:
+              type: object
+              description: A list of n tableHeaders with arbitrary key-names as a key and fully formatted text as value.
+              additionalProperties:
+                type: string
+                description: key-value-pairs for column 1 .. n
+            tableItems:
+              type: array
+              description: Array of one or more table rows
+              items:
+                $ref: "#/components/schemas/tableItem"
+            tableTotal:
+              type: object
+              description: A list of n tableFooters with same key-names defined in tableTitle and fully formatted text as value.
+              additionalProperties:
+                type: string
+                description: key-value-pairs for column 1 .. n
+    tableItem:
+      type: object
+      description: single table row containing n key-value-pairs with same key-names defined in tableTitle and fully formatted text as value.
+      additionalProperties:
+        type: string
+        description: key-value-pairs for column 1 .. n for a single row
+  examples:
+    de:
+      description: "example DE"
+      summary: An example for de market
+      value:
+        input: []
+        vehicle:
+          vehicleConfiguration:
+            baumuster: '2053401'
+            nst: '999'
+            modelYear: '809'
+            salesDescription: 'C 180 Coupé'
+            equipments: []
+          name: 'C 180 Coupé'
+          prices:
+          - id: grossListPrice
+            currency: EUR
+            rawValue: 37549.2
+            charges: []
+          - id: baseListPrice
+            currency: EUR
+            rawValue: 37549.2
+            charges: []
+    pt:
+      description: "example pt"
+      summary: An example for pt market
+      value:
+        input: []
+        vehicle:
+          vehicleConfiguration:
+            baumuster: '2053401'
+            nst: '999'
+            modelYear: '809'
+            salesDescription: 'C 180 Coupé'
+            equipments: []
+          name: 'C 180 Coupé'
+          prices:
+          - id: grossListPrice
+            currency: EUR
+            rawValue: 37549.2
+            charges: []
+          - id: baseListPrice
+            currency: EUR
+            rawValue: 37549.2
+            charges: []
+    "40010":
+      description: "An example for error code 40010"
+      summary: An example for error code 40010
+      value:
+        error:
+            status: 400
+            code: 40010
+            message: 'invalid request: request parsing error'
+    "40030":
+      description: "An example for error code 40030"
+      summary: An example for error code 40030
+      value:
+        error:
+            status: 400
+            code: 40030
+            message: 'invalid request: missing or unknown market'
+    "40031":
+      description: "An example for error code 40031"
+      summary: An example for error code 40031
+      value:
+        error:
+            status: 400
+            code: 40031
+            message: 'invalid request: no data found for market:%iso%, module:%stock_car%, language:%iso%'
+    "40040":
+      description: "An example for error code 40040"
+      summary: An example for error code 40040
+      value:
+        error:
+            status: 400
+            code: 40040
+            message: 'invalid request: empty or unknown caller'
+    "40050":
+      description: "An example for error code 40050"
+      summary: An example for error code 40050
+      value:
+        error:
+            status: 400
+            code: 40050
+            message: 'invalid request: empty locale'
+    "40060":
+      description: "An example for error code 40060"
+      summary: An example for error code 40060
+      value:
+        error:
+            status: 400
+            code: 40060
+            message: 'invalid request: vehicle is missing'
+    "40061":
+      description: "An example for error code 40061"
+      summary: An example for error code 40061
+      value:
+        error:
+            status: 400
+            code: 40061
+            message: 'invalid request: error in vehicle identification'
+    "40062":
+      description: "An example for error code 40062"
+      summary: An example for error code 40062
+      value:
+        error:
+            status: 400
+            code: 40062
+            message: 'invalid request: no funding product configured for this vehicle'
+    "40063":
+      description: "An example for error code 40063"
+      summary: An example for error code 40063
+      value:
+        error:
+            status: 400
+            code: 40063
+            message: 'invalid request: no calculation provided for this retailer'
+    "40070":
+      description: "An example for error code 40070"
+      summary: An example for error code 40070
+      value:
+        error:
+            status: 400
+            code: 40070
+            message: 'invalid request:  js schema validator message'
+    "40071":
+      description: "An example for error code 40071"
+      summary: An example for error code 40071
+      value:
+        error:
+            status: 400
+            code: 40071
+            message: 'invalid request: plausability check failed (field names)'
+    "40072":
+      description: "An example for error code 40072"
+      summary: An example for error code 40072
+      value:
+        error:
+            status: 400
+            code: 40072
+            message: 'invalid request: validation check failed, limits are reached (field name and limit info)'
+    "40310":
+      description: "An example for error code 40310"
+      summary: An example for error code 40310
+      value:
+        error:
+            status: 403
+            code: 40010
+            message: 'forbidden'
+    "50060":
+      description: "An example for error code 50060"
+      summary: An example for error code 50060
+      value:
+        error:
+            status: 500
+            code: 50060
+            message: 'server error: unclassified calculation error'
+    "50070":
+      description: "An example for error code 50070"
+      summary: An example for error code 50070
+      value:
+        error:
+            status: 500
+            code: 50070
+            message: 'server error: fatal error during request processing + message'
+    "50080":
+      description: "An example for error code 50080"
+      summary: An example for error code 50080
+      value:
+        error:
+            status: 500
+            code: 50080
+            message: 'server error: action with dependent ressource failed'
